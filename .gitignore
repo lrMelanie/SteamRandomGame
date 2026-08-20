@@ -1,0 +1,13 @@
+# Local secrets & user data (never commit)
+config.json
+
+# Local caches (rebuilt on demand)
+cache_games.json
+cache_metadata.json
+
+# Python
+__pycache__/
+*.pyc
+
+# Housekeeping
+_to_delete/
