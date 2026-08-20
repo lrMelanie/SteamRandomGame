@@ -3,7 +3,7 @@
 从你的整个 **Steam 家庭库**（以及你自己的游戏）中随机抽选一款游戏。
 
 语言：**English（默认）、Polski、Español、Français、Português、Português (BR)、
-Čeština、简体中文** — 在 **⚙ 设置** 中选择。它同时决定从 Steam 获取的类型/描述的语言。
+Čeština、简体中文** - 在 **⚙ 设置** 中选择。它同时决定从 Steam 获取的类型/描述的语言。
 🌐 [English](README.md) · [Polski](README_pl.md) · [Español](README_es.md) · [Français](README_fr.md) · [Português](README_pt.md) · [Português BR](README_br.md) · [Čeština](README_cs.md) · [简体中文](README_zh.md)
 
 ## 运行（Windows）
@@ -19,7 +19,7 @@
 2. 复制 `"webapi_token"` 后面的值（以 `eyJ` 开头）。
 3. 粘贴到 **令牌** 框，点击 **保存**，然后 **刷新**。
 
-令牌大约一天后过期 — 失效时粘贴一个新的。它保存在本地。程序中的
+令牌大约一天后过期 - 失效时粘贴一个新的。它保存在本地。程序中的
 **如何获取令牌** 按钮会显示这些步骤。
 
 ## 类型
@@ -40,5 +40,5 @@ Steam 库中打开选中的游戏。
 ## 设置保存位置
 
 你的令牌、主题、筛选和缓存保存在 `%APPDATA%\SteamRandomGame`（`config.json`、
-`cache_games.json`、`cache_metadata.json`）— 不在程序旁边，所以公开文件夹绝不会
+`cache_games.json`、`cache_metadata.json`）- 不在程序旁边，所以公开文件夹绝不会
 包含你的令牌。可以删除；下次下载时会重建。

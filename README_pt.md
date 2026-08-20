@@ -3,7 +3,7 @@
 Escolhe um jogo aleatório de toda a tua biblioteca da **Família Steam** (mais os teus próprios jogos).
 
 Idiomas: **English (predefinido), Polski, Español, Français, Português,
-Português (BR), Čeština, 简体中文** — escolhe um em **⚙ Definições**. Também define
+Português (BR), Čeština, 简体中文** - escolhe um em **⚙ Definições**. Também define
 o idioma dos géneros/descrições do Steam.
 🌐 [English](README.md) · [Polski](README_pl.md) · [Español](README_es.md) · [Français](README_fr.md) · [Português](README_pt.md) · [Português BR](README_br.md) · [Čeština](README_cs.md) · [简体中文](README_zh.md)
 
@@ -20,7 +20,7 @@ Tem sessão iniciada no Steam no navegador e depois:
 2. Copia o valor após `"webapi_token"` (começa por `eyJ`).
 3. Cola-o em **Token**, clica **Guardar** e depois **Atualizar**.
 
-O token dura cerca de um dia — cola um novo quando parar. É guardado localmente.
+O token dura cerca de um dia - cola um novo quando parar. É guardado localmente.
 O botão **Como obter o token** mostra estes passos na app.
 
 ## Géneros
@@ -41,5 +41,5 @@ colocas sobre o Steam; sortear aí abre o jogo escolhido na tua biblioteca Steam
 ## Onde são guardadas as definições
 
 O teu token, tema, filtros e caches ficam em `%APPDATA%\SteamRandomGame`
-(`config.json`, `cache_games.json`, `cache_metadata.json`) — não junto à app, por
+(`config.json`, `cache_games.json`, `cache_metadata.json`) - não junto à app, por
 isso a pasta pública nunca contém o teu token. Podes apagar; são recriados no próximo download.

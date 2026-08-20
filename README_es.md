@@ -3,7 +3,7 @@
 Elige un juego al azar de toda tu biblioteca de **Familia de Steam** (más tus propios juegos).
 
 Idiomas: **English (por defecto), Polski, Español, Français, Português,
-Português (BR), Čeština, 简体中文** — elígelo en **⚙ Ajustes**. También fija el
+Português (BR), Čeština, 简体中文** - elígelo en **⚙ Ajustes**. También fija el
 idioma de géneros/descripciones desde Steam.
 🌐 [English](README.md) · [Polski](README_pl.md) · [Español](README_es.md) · [Français](README_fr.md) · [Português](README_pt.md) · [Português BR](README_br.md) · [Čeština](README_cs.md) · [简体中文](README_zh.md)
 
@@ -42,6 +42,6 @@ Steam.
 ## Dónde se guardan los ajustes
 
 Tu token, tema, filtros y cachés viven en `%APPDATA%\SteamRandomGame`
-(`config.json`, `cache_games.json`, `cache_metadata.json`) — no junto a la app,
+(`config.json`, `cache_games.json`, `cache_metadata.json`) - no junto a la app,
 así que la carpeta pública nunca contiene tu token. Se pueden borrar; se recrean
 al descargar.

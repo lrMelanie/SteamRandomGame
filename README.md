@@ -3,7 +3,7 @@
 Pick a random game from your whole **Steam Family** library (plus your own games).
 
 Languages: **English (default), Polski, Español, Français, Português,
-Português (BR), Čeština, 简体中文** — pick one in **⚙ Settings**. It also sets the
+Português (BR), Čeština, 简体中文** - pick one in **⚙ Settings**. It also sets the
 language of genres/descriptions from Steam.
 🌐 [English](README.md) · [Polski](README_pl.md) · [Español](README_es.md) · [Français](README_fr.md) · [Português](README_pt.md) · [Português BR](README_br.md) · [Čeština](README_cs.md) · [简体中文](README_zh.md)
 
@@ -20,7 +20,7 @@ Be logged in to Steam in your browser, then:
 2. Copy the value after `"webapi_token"` (starts with `eyJ`).
 3. Paste it in **Token**, click **Save**, then **Refresh**.
 
-The token lasts about a day — paste a new one when it stops. It's stored locally
+The token lasts about a day - paste a new one when it stops. It's stored locally
 in `config.json`. The **How to get token** button shows these steps in the app.
 
 ## Genres
@@ -41,6 +41,6 @@ float over Steam; rolling there opens the picked game in your Steam library.
 ## Where settings are stored
 
 Your token, theme, filters and caches live in `%APPDATA%\SteamRandomGame`
-(`config.json`, `cache_games.json`, `cache_metadata.json`) — not next to the
+(`config.json`, `cache_games.json`, `cache_metadata.json`) - not next to the
 app, so the public folder never holds your token. Safe to delete; rebuilt on
 the next download.
