@@ -5,7 +5,7 @@ Tire un jeu au hasard dans toute votre bibliothèque **Famille Steam** (plus vos
 Langues : **English (par défaut), Polski, Español, Français, Português,
 Português (BR), Čeština, 简体中文** — choisissez dans **⚙ Paramètres**. Cela règle
 aussi la langue des genres/descriptions depuis Steam.
-Autres README : [README.md](README.md) · [README_pl.md](README_pl.md) · [README_es.md](README_es.md)
+🌐 [English](README.md) · [Polski](README_pl.md) · [Español](README_es.md) · [Français](README_fr.md) · [Português](README_pt.md) · [Português BR](README_br.md) · [Čeština](README_cs.md) · [简体中文](README_zh.md)
 
 ## Lancer (Windows)
 

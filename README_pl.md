@@ -5,7 +5,7 @@ Losuje grę z całej biblioteki **Rodziny Steam** (plus Twoje własne gry).
 Języki: **English (domyślny), Polski, Español, Français, Português,
 Português (BR), Čeština, 简体中文** — wybierasz w **⚙ Ustawieniach**. Ustawia też
 język gatunków/opisów pobieranych ze Steama.
-Inne wersje: [README.md](README.md) · [README_es.md](README_es.md) · [README_fr.md](README_fr.md)
+🌐 [English](README.md) · [Polski](README_pl.md) · [Español](README_es.md) · [Français](README_fr.md) · [Português](README_pt.md) · [Português BR](README_br.md) · [Čeština](README_cs.md) · [简体中文](README_zh.md)
 
 ## Uruchomienie (Windows)
 

@@ -5,7 +5,7 @@ Elige un juego al azar de toda tu biblioteca de **Familia de Steam** (más tus p
 Idiomas: **English (por defecto), Polski, Español, Français, Português,
 Português (BR), Čeština, 简体中文** — elígelo en **⚙ Ajustes**. También fija el
 idioma de géneros/descripciones desde Steam.
-Otros README: [README.md](README.md) · [README_pl.md](README_pl.md) · [README_fr.md](README_fr.md)
+🌐 [English](README.md) · [Polski](README_pl.md) · [Español](README_es.md) · [Français](README_fr.md) · [Português](README_pt.md) · [Português BR](README_br.md) · [Čeština](README_cs.md) · [简体中文](README_zh.md)
 
 ## Ejecutar (Windows)
 

@@ -5,7 +5,7 @@ Pick a random game from your whole **Steam Family** library (plus your own games
 Languages: **English (default), Polski, Español, Français, Português,
 Português (BR), Čeština, 简体中文** — pick one in **⚙ Settings**. It also sets the
 language of genres/descriptions from Steam.
-Other READMEs: [README_pl.md](README_pl.md) · [README_es.md](README_es.md) · [README_fr.md](README_fr.md)
+🌐 [English](README.md) · [Polski](README_pl.md) · [Español](README_es.md) · [Français](README_fr.md) · [Português](README_pt.md) · [Português BR](README_br.md) · [Čeština](README_cs.md) · [简体中文](README_zh.md)
 
 ## Run (Windows)
 
