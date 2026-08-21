@@ -32,11 +32,19 @@ takže velká knihovna chvíli trvá; běží na pozadí a lze pokračovat pozd�
 
 V **Nastavení** zadej `...\Steam\userdata\<id>\config\grid`, aby se použily tvé obrázky.
 
-## Motivy a překrytí
+## Motivy, překrytí a zkratky
 
-Otevři **⚙ Nastavení** pro změnu motivu (Neon, Steam blue, Arcade, Dark gray,
-High contrast). Tlačítko **Překrytí** otevře malé okno vždy navrchu, které položíš
-přes Steam; losování tam otevře vylosovanou hru ve tvé knihovně Steam.
+V **⚙ Nastavení** změníš motiv (Neon, Steam blue, Arcade, Dark gray, High
+contrast) a otevřeš **Překrytí** - malé okno vždy navrchu, které položíš přes
+Steam; losování tam otevře vylosovanou hru ve tvé knihovně Steam. Mezerník
+losuje. Hry mimo Steam přidané do knihovny se také losují.
+
+## Achievementy
+
+Zapni **Zobrazovat achievementy** v **⚙ Nastavení**, abys u vylosované hry viděl
+odemčené/celkem, a zaškrtni **lovec achievementů** (vedle jen-nainstalované) pro
+náhodný nezískaný achievement k získání. Používá tvůj token; pokud nefunguje,
+vlož **Steam API klíč** v Nastavení. Statistiky achievementů musí být veřejné.
 
 ## Kde se ukládá nastavení
 

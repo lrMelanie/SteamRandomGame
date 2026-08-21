@@ -32,11 +32,19 @@ então uma biblioteca grande demora; roda em segundo plano e pode continuar depo
 
 Nas **Configurações**, aponte para `...\Steam\userdata\<id>\config\grid` para usar suas capas.
 
-## Temas e sobreposição
+## Temas, sobreposição e atalhos
 
-Abra **⚙ Configurações** para trocar o tema (Neon, Steam blue, Arcade, Dark gray,
-High contrast). O botão **Sobreposição** abre uma janelinha sempre no topo que você
-coloca sobre o Steam; sortear ali abre o jogo escolhido na sua biblioteca Steam.
+Nas **⚙ Configurações** você troca o tema (Neon, Steam blue, Arcade, Dark gray,
+High contrast) e abre a **Sobreposição** - uma janelinha sempre no topo para pôr
+sobre o Steam; sortear ali abre o jogo escolhido na sua biblioteca Steam. A barra
+de espaço sorteia. Os jogos fora do Steam adicionados à sua biblioteca também entram.
+
+## Conquistas
+
+Ative **Mostrar conquistas** nas **⚙ Configurações** para ver desbloqueadas/total
+do jogo sorteado, e marque **caçador de conquistas** (ao lado de só-instalados)
+para receber também uma conquista aleatória para desbloquear. Usa seu token; se
+não funcionar, cole uma **chave da API Steam** nas Configurações. As estatísticas devem ser públicas.
 
 ## Onde as configurações ficam salvas
 

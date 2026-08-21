@@ -1,5 +1,5 @@
-import os, sys, io, re, json, time, base64, random, shutil, threading, webbrowser
-import urllib.parse, urllib.request
+import os, sys, io, re, json, time, base64, random, shutil, zlib, queue, threading, webbrowser
+import urllib.parse, urllib.request, urllib.error
 
 
 def ensure(pkg, pip=None):
@@ -326,6 +326,41 @@ TR = {
     },
 }
 
+_NONSTEAM = {"en": "non-Steam", "pl": "spoza Steam", "es": "fuera de Steam",
+             "fr": "hors Steam", "pt": "fora do Steam", "br": "fora do Steam",
+             "cs": "mimo Steam", "zh": "\u975e Steam"}
+for _c, _v in _NONSTEAM.items():
+    TR[_c]["nonsteam"] = _v
+
+_EXTRA = {
+    "en": {"hunter": "achievement hunter", "achievements": "Achievements",
+           "target": "Achievement to earn", "show_ach": "Show achievements",
+           "api_key": "Steam API key (achievements, optional):", "ach_none": "no achievement data"},
+    "pl": {"hunter": "lowca osiagniec", "achievements": "Osiagniecia",
+           "target": "Osiagniecie do zdobycia", "show_ach": "Pokazuj osiagniecia",
+           "api_key": "Klucz Steam API (osiagniecia, opcjonalnie):", "ach_none": "brak danych o osiagnieciach"},
+    "es": {"hunter": "cazador de logros", "achievements": "Logros",
+           "target": "Logro por conseguir", "show_ach": "Mostrar logros",
+           "api_key": "Clave de Steam API (logros, opcional):", "ach_none": "sin datos de logros"},
+    "fr": {"hunter": "chasseur de succes", "achievements": "Succes",
+           "target": "Succes a debloquer", "show_ach": "Afficher les succes",
+           "api_key": "Cle API Steam (succes, optionnel):", "ach_none": "pas de donnees de succes"},
+    "pt": {"hunter": "cacador de conquistas", "achievements": "Conquistas",
+           "target": "Conquista a obter", "show_ach": "Mostrar conquistas",
+           "api_key": "Chave da API Steam (conquistas, opcional):", "ach_none": "sem dados de conquistas"},
+    "br": {"hunter": "cacador de conquistas", "achievements": "Conquistas",
+           "target": "Conquista para desbloquear", "show_ach": "Mostrar conquistas",
+           "api_key": "Chave da API Steam (conquistas, opcional):", "ach_none": "sem dados de conquistas"},
+    "cs": {"hunter": "lovec achievementu", "achievements": "Achievementy",
+           "target": "Achievement k ziskani", "show_ach": "Zobrazovat achievementy",
+           "api_key": "Steam API klic (achievementy, volitelne):", "ach_none": "zadna data o achievementech"},
+    "zh": {"hunter": "成就猎人", "achievements": "成就",
+           "target": "要解锁的成就", "show_ach": "显示成就",
+           "api_key": "Steam API 密钥（成就，可选）:", "ach_none": "无成就数据"},
+}
+for _c, _d in _EXTRA.items():
+    TR[_c].update(_d)
+
 
 def get(url, timeout=25):
     req = urllib.request.Request(url, headers={"User-Agent": UA})
@@ -374,9 +409,23 @@ def migrate():
                 pass
 
 
+def steam_root_from(path):
+    parts = os.path.normpath(path).split(os.sep)
+    low = [x.lower() for x in parts]
+    if "userdata" in low:
+        i = low.index("userdata")
+        root = os.sep.join(parts[:i])
+        return root or path
+    return path
+
+
 def steam_dir(override=""):
-    if override and os.path.isdir(override):
-        return override
+    if override:
+        root = steam_root_from(override)
+        if os.path.isdir(root):
+            return root
+        if os.path.isdir(override):
+            return override
     try:
         import winreg
         spots = [(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam", "SteamPath"),
@@ -426,6 +475,86 @@ def installed_ids(override=""):
     return ids
 
 
+def _cstr(data, i):
+    j = data.index(b"\x00", i)
+    return data[i:j].decode("utf-8", "replace"), j + 1
+
+
+def _vdf_map(data, i):
+    obj = {}
+    n = len(data)
+    while i < n:
+        t = data[i]; i += 1
+        if t == 0x08:
+            return obj, i
+        key, i = _cstr(data, i)
+        if t == 0x00:
+            val, i = _vdf_map(data, i)
+        elif t == 0x01:
+            val, i = _cstr(data, i)
+        elif t == 0x02:
+            val = int.from_bytes(data[i:i + 4], "little", signed=True); i += 4
+        elif t == 0x07:
+            val = int.from_bytes(data[i:i + 8], "little", signed=False); i += 8
+        else:
+            break
+        obj[key.lower()] = val
+    return obj, i
+
+
+def parse_shortcuts(path):
+    try:
+        data = open(path, "rb").read()
+    except OSError:
+        return []
+    try:
+        i = 1
+        _, i = _cstr(data, i)
+        root, _ = _vdf_map(data, i)
+    except Exception:
+        return []
+    out = []
+    for entry in root.values():
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("appname") or ""
+        if not name:
+            continue
+        out.append({"name": name, "appid": entry.get("appid"), "exe": entry.get("exe", "")})
+    return out
+
+
+def nonsteam_gameid(appid):
+    u = appid & 0xffffffff
+    return (u << 32) | 0x02000000
+
+
+def nonsteam_games(steam):
+    if not steam:
+        return []
+    base = os.path.join(steam, "userdata")
+    try:
+        accs = os.listdir(base)
+    except OSError:
+        return []
+    out, seen = [], set()
+    for acc in accs:
+        path = os.path.join(base, acc, "config", "shortcuts.vdf")
+        if not os.path.isfile(path):
+            continue
+        for s in parse_shortcuts(path):
+            name = s["name"]
+            if name in seen:
+                continue
+            seen.add(name)
+            appid = s.get("appid")
+            gid = nonsteam_gameid(appid) if appid else None
+            key = appid if appid else -(zlib.crc32(name.encode("utf-8")) & 0x7fffffff)
+            out.append({"appid": key, "name": name, "owners": [], "last_played": 0,
+                        "nonsteam": True, "gameid": gid, "exe": s.get("exe", "")})
+    return out
+
+
 class Steam:
     API = "https://api.steampowered.com/IFamilyGroupsService"
 
@@ -462,32 +591,61 @@ class Steam:
 
 
 def fetch_meta(appid, lang):
-    url = f"https://store.steampowered.com/api/appdetails?appids={appid}&l={lang}"
+    url = (f"https://store.steampowered.com/api/appdetails?appids={appid}"
+           f"&l={lang}&filters=basic,genres,achievements")
     try:
-        node = getj(url).get(str(appid), {})
-        if not node.get("success"):
-            return {"genres": [], "desc": ""}
-        d = node.get("data", {})
-        return {"genres": [g.get("description", "") for g in d.get("genres", [])],
-                "desc": d.get("short_description", "")}
+        req = urllib.request.Request(url, headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=25) as r:
+            raw = json.loads(r.read().decode("utf-8", "replace"))
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            return {"_429": True}
+        return {"genres": [], "desc": "", "ach": 0}
     except Exception:
-        return {"genres": [], "desc": ""}
+        return {"genres": [], "desc": "", "ach": 0}
+    node = raw.get(str(appid), {})
+    if not node.get("success"):
+        return {"genres": [], "desc": "", "ach": 0}
+    d = node.get("data", {})
+    return {"genres": [g.get("description", "") for g in d.get("genres", [])],
+            "desc": d.get("short_description", ""),
+            "ach": d.get("achievements", {}).get("total", 0)}
+
+
+def player_achievements(auth, steamid, appid, lang):
+    url = (f"https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/"
+           f"?{auth}&steamid={steamid}&appid={appid}&l={lang}")
+    try:
+        data = getj(url).get("playerstats", {})
+    except Exception:
+        return None
+    if not data.get("success"):
+        return None
+    achs = data.get("achievements", [])
+    if not achs:
+        return None
+    total = len(achs)
+    unlocked = sum(1 for a in achs if a.get("achieved"))
+    return {"total": total, "unlocked": unlocked, "list": achs}
 
 
 class Loader:
-    def __init__(self, folder=""):
-        self.folder = folder
+    def __init__(self, folders=None):
+        self.folders = folders or []
         self.cache = {}
 
     def local(self, appid):
-        if self.folder and os.path.isdir(self.folder):
-            for name in (f"{appid}.jpg", f"{appid}.png"):
-                p = os.path.join(self.folder, name)
+        for folder in self.folders:
+            if not folder or not os.path.isdir(folder):
+                continue
+            for name in (f"{appid}.jpg", f"{appid}.png", f"{appid}p.jpg", f"{appid}p.png",
+                         f"{appid}_hero.jpg", f"{appid}_hero.png"):
+                p = os.path.join(folder, name)
                 if os.path.isfile(p):
                     return p
         return None
 
-    def load(self, appid):
+    def load(self, appid, cdn=True):
         if not HAS_PIL:
             return None
         if appid in self.cache:
@@ -499,7 +657,7 @@ class Loader:
                 img = Image.open(p).convert("RGBA")
             except Exception:
                 img = None
-        if img is None:
+        if img is None and cdn:
             for url in (f"{CDN}/{appid}/header.jpg", f"{CDN}/{appid}/capsule_616x353.jpg"):
                 try:
                     img = Image.open(io.BytesIO(get(url))).convert("RGBA"); break
@@ -519,17 +677,90 @@ class App(tk.Tk):
             self.lang = "en"
         self.pal = THEMES.get(self.cfg.get("theme", "neon"), THEMES["neon"])
         self.meta = loadjson(METAF, {})
-        self.loader = Loader(self.cfg.get("grid_folder", ""))
+        self.loader = Loader(self.grid_folders())
         self.games = loadjson(GAMES, {"apps": []}).get("apps", [])
         self.history = []
         self.photos = []
         self.inst = None
+        self.nonsteam = []
         self.ov = None
         self.geometry("1010x720")
         self.minsize(880, 580)
+        self._ui_q = queue.Queue()
         self.style()
         self.build()
         self.after_build()
+        self.bind("<space>", self.on_space)
+        self.after(50, self._ui_poll)
+
+    def ui(self, fn):
+        self._ui_q.put(fn)
+
+    def _ui_poll(self):
+        try:
+            while True:
+                self._ui_q.get_nowait()()
+        except queue.Empty:
+            pass
+        except Exception:
+            pass
+        self.after(50, self._ui_poll)
+
+    def on_space(self, e):
+        w = self.focus_get()
+        cls = w.winfo_class() if w else ""
+        if cls in ("TEntry", "Entry", "Text", "TCombobox", "TSpinbox"):
+            return
+        self.roll()
+        return "break"
+
+    def grid_folders(self):
+        fs = []
+        g = self.cfg.get("grid_folder", "")
+        if g:
+            fs.append(g)
+        sd = steam_dir(self.cfg.get("steam_path", "") or g)
+        if sd:
+            ud = os.path.join(sd, "userdata")
+            try:
+                for acc in os.listdir(ud):
+                    gp = os.path.join(ud, acc, "config", "grid")
+                    if os.path.isdir(gp):
+                        fs.append(gp)
+            except OSError:
+                pass
+        return list(dict.fromkeys(fs))
+
+    def fit_photo(self, img, bw, bh):
+        im = img.copy()
+        im.thumbnail((bw, bh))
+        ph = ImageTk.PhotoImage(im)
+        self.photos.append(ph)
+        return ph
+
+    def set_window_icon(self, a):
+        if not HAS_PIL:
+            return
+        try:
+            src = None
+            for folder in self.loader.folders:
+                for nm in (f"{a['appid']}_icon.png", f"{a['appid']}_icon.jpg", f"{a['appid']}.ico"):
+                    pth = os.path.join(folder, nm)
+                    if os.path.isfile(pth):
+                        src = pth
+                        break
+                if src:
+                    break
+            im = Image.open(src).convert("RGBA") if src else self.loader.load(a["appid"], cdn=not a.get("nonsteam"))
+            if im is None:
+                return
+            w, h = im.size
+            s = min(w, h)
+            im = im.crop(((w - s) // 2, (h - s) // 2, (w - s) // 2 + s, (h - s) // 2 + s)).resize((64, 64))
+            self._icon_photo = ImageTk.PhotoImage(im)
+            self.iconphoto(True, self._icon_photo)
+        except Exception:
+            pass
 
     def t(self, key, **kw):
         s = TR.get(self.lang, TR["en"]).get(key) or TR["en"].get(key, key)
@@ -630,6 +861,9 @@ class App(tk.Tk):
         self.installed = tk.BooleanVar(value=False)
         ttk.Checkbutton(f, text=self.t("installed"), variable=self.installed,
                         command=self.save_filters).pack(side="left", padx=6)
+        self.hunter = tk.BooleanVar(value=False)
+        ttk.Checkbutton(f, text=self.t("hunter"), variable=self.hunter,
+                        command=self.save_filters).pack(side="left", padx=6)
         ttk.Label(f, text=self.t("count")).pack(side="left")
         self.count = tk.IntVar(value=1)
         ttk.Spinbox(f, from_=1, to=12, width=4, textvariable=self.count,
@@ -644,9 +878,8 @@ class App(tk.Tk):
         g.pack(fill="x")
         ttk.Button(g, text=self.t("roll"), style="Go.TButton", command=self.roll).pack(side="left")
         ttk.Button(g, text=self.t("again"), command=self.roll).pack(side="left", padx=6)
-        ttk.Button(g, text=self.t("overlay"), style="Accent.TButton", command=self.open_overlay).pack(side="right")
-        ttk.Button(g, text=self.t("blocklist"), command=self.open_blocklist).pack(side="right", padx=6)
-        ttk.Button(g, text=self.t("getgenres"), command=self.get_genres).pack(side="right")
+        ttk.Button(g, text=self.t("blocklist"), command=self.open_blocklist).pack(side="right")
+        ttk.Button(g, text=self.t("getgenres"), command=self.get_genres).pack(side="right", padx=6)
 
         mid = ttk.Frame(main, padding=12)
         mid.pack(fill="both", expand=True)
@@ -732,6 +965,7 @@ class App(tk.Tk):
         self.cfg["filters"] = {"genre": self.genre_var.get(), "owner": self.owner_var.get(),
                                "unplayed": bool(self.unplayed.get()),
                                "installed": bool(self.installed.get()),
+                               "hunter": bool(self.hunter.get()),
                                "count": int(self.count.get() or 1)}
         savejson(CONFIG, self.cfg)
 
@@ -743,6 +977,7 @@ class App(tk.Tk):
             self.owner_var.set(fl["owner"])
         self.unplayed.set(bool(fl.get("unplayed", False)))
         self.installed.set(bool(fl.get("installed", False)))
+        self.hunter.set(bool(fl.get("hunter", False)))
         try:
             self.count.set(int(fl.get("count", 1)))
         except Exception:
@@ -794,8 +1029,8 @@ class App(tk.Tk):
         apps = api.library(gid)
         self.games = apps
         savejson(GAMES, {"updated": int(time.time()), "apps": apps})
-        self.after(0, lambda: (self.fill_filters(), self.status(),
-                               messagebox.showinfo(self.t("title"), self.t("got_games", n=len(apps)))))
+        self.ui(lambda: (self.fill_filters(), self.status(),
+                         messagebox.showinfo(self.t("title"), self.t("got_games", n=len(apps)))))
 
     def get_genres(self):
         if not self.games:
@@ -810,23 +1045,63 @@ class App(tk.Tk):
     def _genres(self, todo):
         n = len(todo)
         lang = STEAM_LANG.get(self.lang, "english")
-        for i, a in enumerate(todo, 1):
-            self.meta[str(a["appid"])] = fetch_meta(a["appid"], lang)
-            if i % 20 == 0:
-                savejson(METAF, self.meta)
-            self.after(0, lambda i=i: self.prog(i, n, self.t("prog_genres", i=i, n=n)))
-            time.sleep(1.5)
-        savejson(METAF, self.meta)
-        self.after(0, lambda: (self.fill_filters(), self.status(),
-                               messagebox.showinfo(self.t("title"), self.t("genres_done"))))
+        q = queue.Queue()
+        for a in todo:
+            q.put(a)
+        lock = threading.Lock()
+        gate = threading.Lock()
+        state = {"done": 0, "next": 0.0}
+        interval = 0.8
+        run_ok = threading.Event()
+        run_ok.set()
 
-    def pool(self):
+        def acquire():
+            run_ok.wait()
+            with gate:
+                now = time.monotonic()
+                wait = max(0.0, state["next"] - now)
+                state["next"] = max(now, state["next"]) + interval
+            if wait > 0:
+                time.sleep(wait)
+
+        def worker():
+            while True:
+                try:
+                    a = q.get_nowait()
+                except queue.Empty:
+                    return
+                acquire()
+                info = fetch_meta(a["appid"], lang)
+                if info.get("_429"):
+                    if run_ok.is_set():
+                        run_ok.clear()
+                        threading.Timer(15, run_ok.set).start()
+                    q.put(a)
+                    continue
+                with lock:
+                    self.meta[str(a["appid"])] = info
+                    state["done"] += 1
+                    d = state["done"]
+                    if d % 20 == 0:
+                        savejson(METAF, self.meta)
+                self.ui(lambda d=d: self.prog(d, n, self.t("prog_genres", i=d, n=n)))
+
+        threads = [threading.Thread(target=worker, daemon=True) for _ in range(4)]
+        for th in threads:
+            th.start()
+        for th in threads:
+            th.join()
+        savejson(METAF, self.meta)
+        self.ui(lambda: (self.fill_filters(), self.status(),
+                         messagebox.showinfo(self.t("title"), self.t("genres_done"))))
+
+    def pool(self, src):
         blocked = set(self.cfg.get("blocklist", []))
-        p = [a for a in self.games if a["appid"] not in blocked]
+        p = [a for a in src if a["appid"] not in blocked]
         if self.unplayed.get():
             p = [a for a in p if not a.get("last_played")]
         if self.installed.get() and self.inst is not None:
-            p = [a for a in p if a["appid"] in self.inst]
+            p = [a for a in p if a.get("nonsteam") or a["appid"] in self.inst]
         if self.owner_var.get() != self.t("all"):
             p = [a for a in p if any(self.owner_name(o) == self.owner_var.get() for o in a.get("owners", []))]
         if self.genre_var.get() != self.t("any"):
@@ -834,12 +1109,15 @@ class App(tk.Tk):
         return p
 
     def prepare_pool(self):
+        sd = steam_dir(self.cfg.get("steam_path", "") or self.cfg.get("grid_folder", ""))
+        self.loader.folders = self.grid_folders()
         self.inst = None
         if self.installed.get():
-            self.inst = installed_ids(self.cfg.get("steam_path", ""))
+            self.inst = installed_ids(sd)
             if self.inst is None:
                 messagebox.showwarning(self.t("error"), self.t("no_steam"))
-        return self.pool()
+        self.nonsteam = nonsteam_games(sd)
+        return self.pool(self.games + self.nonsteam)
 
     def pick_from(self, p, k):
         k = max(1, min(k, len(p)))
@@ -851,7 +1129,7 @@ class App(tk.Tk):
         return picks
 
     def spin(self, label, pick, done):
-        flash = [a["name"] for a in self.games] or [pick["name"]]
+        flash = [a["name"] for a in (self.games + self.nonsteam)] or [pick["name"]]
         delays = [25 + int(150 * (i / 23.0) ** 2.2) for i in range(24)]
 
         def step(i):
@@ -864,57 +1142,156 @@ class App(tk.Tk):
         step(0)
 
     def roll(self):
-        if not self.games:
-            return messagebox.showwarning(self.t("error"), self.t("refresh_first"))
         p = self.prepare_pool()
         if not p:
-            return messagebox.showinfo(self.t("title"), self.t("no_match"))
+            if self.games or self.nonsteam:
+                return messagebox.showinfo(self.t("title"), self.t("no_match"))
+            return messagebox.showwarning(self.t("error"), self.t("refresh_first"))
         picks = self.pick_from(p, int(self.count.get() or 1))
         for w in self.results.winfo_children():
             w.destroy()
         self.photos.clear()
-        big = ttk.Label(self.results, style="Spin.TLabel", text=self.t("spin"),
-                        anchor="center", wraplength=760)
-        big.pack(fill="x", pady=30)
+        box = ttk.Frame(self.results)
+        box.pack(fill="x", pady=24)
+        img_lbl = ttk.Label(box, style="Spin.TLabel", anchor="center")
+        img_lbl.pack()
+        name_lbl = ttk.Label(box, style="Spin.TLabel", text=self.t("spin"),
+                             anchor="center", wraplength=760)
+        name_lbl.pack(pady=(8, 0))
+
+        self._pil_frames = []
+        if HAS_PIL:
+            seen, preset = set(), []
+            for gm in picks + random.sample(p, min(10, len(p))):
+                if gm["appid"] in seen:
+                    continue
+                seen.add(gm["appid"])
+                preset.append(gm)
+
+            def load_one(game):
+                im = self.loader.load(game["appid"], cdn=not game.get("nonsteam"))
+                if im is not None:
+                    self._pil_frames.append((game["name"], im))
+            for gm in preset:
+                threading.Thread(target=load_one, args=(gm,), daemon=True).start()
+
+        photo_frames = []
+
+        def sync_frames():
+            while len(photo_frames) < len(self._pil_frames):
+                nm, im = self._pil_frames[len(photo_frames)]
+                photo_frames.append((nm, self.fit_photo(im, 300, 150)))
+
+        names = [a["name"] for a in (self.games + self.nonsteam)] or [picks[0]["name"]]
+        delays = [25 + int(150 * (i / 23.0) ** 2.2) for i in range(24)]
+
+        def step(i):
+            if i < len(delays):
+                sync_frames()
+                if photo_frames:
+                    nm, ph = random.choice(photo_frames)
+                    name_lbl.config(text=nm)
+                    img_lbl.configure(image=ph)
+                else:
+                    name_lbl.config(text=random.choice(names))
+                self.after(delays[i], step, i + 1)
+            else:
+                name_lbl.config(text=picks[0]["name"])
+                if HAS_PIL:
+                    fim = self.loader.load(picks[0]["appid"], cdn=not picks[0].get("nonsteam"))
+                    if fim is not None:
+                        img_lbl.configure(image=self.fit_photo(fim, 300, 150))
+                self.after(220, done)
 
         def done():
-            big.destroy()
+            box.destroy()
             for a in picks:
                 self.card(a)
+            self.set_window_icon(picks[0])
             self.canvas.yview_moveto(0)
-        self.spin(big, picks[0], done)
+        step(0)
 
     def card(self, a):
         appid = a["appid"]
+        ns = a.get("nonsteam")
         m = self.meta.get(str(appid), {})
         c = ttk.Frame(self.results, style="Card.TFrame", padding=12)
         c.pack(fill="x", pady=6, padx=2)
-        img = self.loader.load(appid)
+        img = self.loader.load(appid, cdn=not ns)
         if img is not None and HAS_PIL:
-            ratio = 320 / img.width
-            photo = ImageTk.PhotoImage(img.resize((320, int(img.height * ratio))))
-            self.photos.append(photo)
-            ttk.Label(c, image=photo, style="Card.TLabel").grid(row=0, column=0, rowspan=4, sticky="nw", padx=(0, 12))
+            photo = self.fit_photo(img, 300, 165)
+            ttk.Label(c, image=photo, style="Card.TLabel").grid(row=0, column=0, rowspan=7, sticky="nw", padx=(0, 12))
         else:
-            ttk.Label(c, text=self.t("no_cover"), style="Card.TLabel").grid(row=0, column=0, rowspan=4, sticky="nw", padx=(0, 12))
-        ttk.Label(c, text=a["name"], style="Title.TLabel", wraplength=520, justify="left").grid(row=0, column=1, sticky="w")
-        genres = ", ".join(m.get("genres", [])) or self.t("genres_hint")
-        ttk.Label(c, text=genres, style="Card.TLabel", wraplength=520, justify="left").grid(row=1, column=1, sticky="w", pady=(2, 0))
-        owners = ", ".join(self.owner_name(o) for o in a.get("owners", [])) or "-"
-        played = self.t("never") if not a.get("last_played") else self.t("played", d=time.strftime("%Y-%m-%d", time.localtime(a["last_played"])))
-        ttk.Label(c, text=f"{owners}  -  {played}", style="Card.TLabel", wraplength=520, justify="left").grid(row=2, column=1, sticky="w", pady=(2, 0))
+            ttk.Label(c, text=self.t("no_cover"), style="Card.TLabel").grid(row=0, column=0, rowspan=7, sticky="nw", padx=(0, 12))
+        title = a["name"] + ("  •  " + self.t("nonsteam") if ns else "")
+        ttk.Label(c, text=title, style="Title.TLabel", wraplength=520, justify="left").grid(row=0, column=1, sticky="w")
+        genres = ", ".join(m.get("genres", [])) or ("" if ns else self.t("genres_hint"))
+        if genres:
+            ttk.Label(c, text=genres, style="Card.TLabel", wraplength=520, justify="left").grid(row=1, column=1, sticky="w", pady=(2, 0))
+        if not ns:
+            owners = ", ".join(self.owner_name(o) for o in a.get("owners", [])) or "-"
+            played = self.t("never") if not a.get("last_played") else self.t("played", d=time.strftime("%Y-%m-%d", time.localtime(a["last_played"])))
+            ttk.Label(c, text=f"{owners}  -  {played}", style="Card.TLabel", wraplength=520, justify="left").grid(row=2, column=1, sticky="w", pady=(2, 0))
         if m.get("desc"):
             ttk.Label(c, text=m["desc"], style="Card.TLabel", wraplength=520, justify="left").grid(row=3, column=1, sticky="w", pady=(4, 0))
+        show_ach = self.cfg.get("show_ach", False)
+        hunter = self.hunter.get()
+        api = self.api()
+        if not ns and (show_ach or hunter) and api and api.sid:
+            ach_lbl = ttk.Label(c, text="\U0001F3C6 ...", style="Card.TLabel", wraplength=520, justify="left")
+            ach_lbl.grid(row=5, column=1, sticky="w", pady=(6, 0))
+            key = self.cfg.get("api_key", "").strip()
+            auth = f"key={key}" if key else f"access_token={api.token}"
+            lang = STEAM_LANG.get(self.lang, "english")
+
+            def work(aid=appid, lbl=ach_lbl):
+                res = player_achievements(auth, api.sid, aid, lang)
+
+                def upd():
+                    if not lbl.winfo_exists():
+                        return
+                    if not res:
+                        lbl.config(text=self.t("ach_none"))
+                        return
+                    parts = []
+                    if show_ach:
+                        parts.append(f"\U0001F3C6 {self.t('achievements')}: {res['unlocked']}/{res['total']}")
+                    if hunter:
+                        locked = [x for x in res["list"] if not x.get("achieved")]
+                        if locked:
+                            pk = random.choice(locked)
+                            nm = pk.get("name") or pk.get("apiname")
+                            ds = pk.get("description", "")
+                            t = f"\U0001F3AF {self.t('target')}: {nm}"
+                            if ds:
+                                t += f" - {ds}"
+                            parts.append(t)
+                    lbl.config(text="\n".join(parts) if parts else self.t("ach_none"))
+                self.ui(upd)
+            threading.Thread(target=work, daemon=True).start()
         bt = ttk.Frame(c, style="Card.TFrame")
-        bt.grid(row=4, column=1, sticky="w", pady=(8, 0))
+        bt.grid(row=6, column=1, sticky="w", pady=(8, 0))
         ttk.Button(bt, text=self.t("play"), style="Accent.TButton",
-                   command=lambda i=appid: webbrowser.open(f"steam://run/{i}")).pack(side="left")
-        ttk.Button(bt, text=self.t("library"),
-                   command=lambda i=appid: webbrowser.open(f"steam://nav/games/details/{i}")).pack(side="left", padx=6)
-        ttk.Button(bt, text=self.t("store"),
-                   command=lambda i=appid: webbrowser.open(f"https://store.steampowered.com/app/{i}")).pack(side="left")
+                   command=lambda g=a: self.launch(g)).pack(side="left")
+        if not ns:
+            ttk.Button(bt, text=self.t("library"),
+                       command=lambda i=appid: webbrowser.open(f"steam://nav/games/details/{i}")).pack(side="left", padx=6)
+            ttk.Button(bt, text=self.t("store"),
+                       command=lambda i=appid: webbrowser.open(f"https://store.steampowered.com/app/{i}")).pack(side="left")
         ttk.Button(bt, text=self.t("block"),
                    command=lambda i=appid, fr=c: self.block(i, fr)).pack(side="left", padx=6)
+
+    def launch(self, a):
+        if a.get("nonsteam"):
+            if a.get("gameid"):
+                webbrowser.open(f"steam://rungameid/{a['gameid']}")
+            elif a.get("exe") and hasattr(os, "startfile"):
+                try:
+                    os.startfile(a["exe"].strip('"'))
+                except Exception:
+                    pass
+        else:
+            webbrowser.open(f"steam://run/{a['appid']}")
 
     def block(self, appid, frame):
         bl = self.cfg.setdefault("blocklist", [])
@@ -942,7 +1319,7 @@ class App(tk.Tk):
             if not bl:
                 ttk.Label(holder, text=self.t("blocklist_empty")).pack(anchor="w")
                 return
-            names = {a["appid"]: a["name"] for a in self.games}
+            names = {a["appid"]: a["name"] for a in (self.games + self.nonsteam)}
             for appid in list(bl):
                 row = ttk.Frame(holder)
                 row.pack(fill="x", pady=2)
@@ -956,7 +1333,7 @@ class App(tk.Tk):
         w = tk.Toplevel(self)
         w.title(self.t("settings"))
         w.configure(bg=self.pal["bg"])
-        w.geometry("560x430")
+        w.geometry("560x580")
 
         ttk.Label(w, text=self.t("theme")).pack(anchor="w", padx=10, pady=(10, 2))
         tv = tk.StringVar(value=THEME_LABELS.get(self.cfg.get("theme", "neon")))
@@ -995,6 +1372,12 @@ class App(tk.Tk):
         ttk.Entry(grow, textvariable=gv).pack(side="left", fill="x", expand=True)
         ttk.Button(grow, text=self.t("browse"), command=lambda: gv.set(filedialog.askdirectory() or gv.get())).pack(side="left", padx=6)
 
+        ttk.Label(w, text=self.t("api_key")).pack(anchor="w", padx=10, pady=(10, 2))
+        kv = tk.StringVar(value=self.cfg.get("api_key", ""))
+        ttk.Entry(w, textvariable=kv).pack(fill="x", padx=10)
+        sa = tk.BooleanVar(value=bool(self.cfg.get("show_ach", False)))
+        ttk.Checkbutton(w, text=self.t("show_ach"), variable=sa).pack(anchor="w", padx=10, pady=(8, 0))
+
         ttk.Label(w, text=self.t("names_label")).pack(anchor="w", padx=10, pady=(10, 2))
         txt = self.txtbox(w, height=4)
         txt.pack(fill="both", expand=True, padx=10)
@@ -1003,7 +1386,6 @@ class App(tk.Tk):
         def save():
             self.cfg["steam_path"] = sv.get().strip()
             self.cfg["grid_folder"] = gv.get().strip()
-            self.loader.folder = self.cfg["grid_folder"]
             names = {}
             for line in txt.get("1.0", "end").splitlines():
                 if "=" in line:
@@ -1011,9 +1393,13 @@ class App(tk.Tk):
                     if k.strip():
                         names[k.strip()] = v.strip()
             self.cfg["owner_names"] = names
+            self.cfg["api_key"] = kv.get().strip()
+            self.cfg["show_ach"] = bool(sa.get())
+            self.loader.folders = self.grid_folders()
             savejson(CONFIG, self.cfg)
             self.fill_filters()
             w.destroy()
+        ttk.Button(w, text=self.t("overlay"), command=lambda: (w.destroy(), self.open_overlay())).pack(pady=(10, 0))
         ttk.Button(w, text=self.t("save"), style="Accent.TButton", command=save).pack(pady=8)
 
     def open_overlay(self):
@@ -1069,18 +1455,18 @@ class App(tk.Tk):
             self.ov = None
 
     def overlay_roll(self, label):
-        if not self.games:
-            label.config(text=self.t("refresh_first"))
-            return
         p = self.prepare_pool()
         if not p:
-            label.config(text=self.t("no_match"))
+            label.config(text=self.t("no_match") if (self.games or self.nonsteam) else self.t("refresh_first"))
             return
         pick = self.pick_from(p, 1)[0]
 
         def done():
             label.config(text=pick["name"])
-            webbrowser.open(f"steam://nav/games/details/{pick['appid']}")
+            if pick.get("nonsteam"):
+                self.launch(pick)
+            else:
+                webbrowser.open(f"steam://nav/games/details/{pick['appid']}")
         self.spin(label, pick, done)
 
     def prog(self, cur, total, text):
@@ -1099,12 +1485,12 @@ class App(tk.Tk):
             try:
                 worker()
             except RuntimeError as e:
-                self.after(0, lambda: messagebox.showerror(self.t("error"), self.t(str(e))))
+                self.ui(lambda: messagebox.showerror(self.t("error"), self.t(str(e))))
             except Exception as e:
-                self.after(0, lambda: messagebox.showerror(self.t("error"), str(e)))
+                self.ui(lambda: messagebox.showerror(self.t("error"), str(e)))
             finally:
-                self.after(0, lambda: self.progress.configure(value=0))
-                self.after(0, self.status)
+                self.ui(lambda: self.progress.configure(value=0))
+                self.ui(self.status)
         threading.Thread(target=run, daemon=True).start()
 
 

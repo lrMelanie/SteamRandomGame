@@ -32,11 +32,19 @@ por isso uma biblioteca grande demora; corre em segundo plano e pode continuar d
 
 Nas **Definições**, indica `...\Steam\userdata\<id>\config\grid` para usar as tuas capas.
 
-## Temas e sobreposição
+## Temas, sobreposição e atalhos
 
-Abre **⚙ Definições** para mudar de tema (Neon, Steam blue, Arcade, Dark gray,
-High contrast). O botão **Sobreposição** abre uma janelinha sempre visível que
-colocas sobre o Steam; sortear aí abre o jogo escolhido na tua biblioteca Steam.
+Nas **⚙ Definições** mudas o tema (Neon, Steam blue, Arcade, Dark gray, High
+contrast) e abres a **Sobreposição** - uma janelinha sempre visível para pores
+sobre o Steam; sortear aí abre o jogo escolhido na tua biblioteca Steam. A barra
+de espaço sorteia. Os jogos fora do Steam adicionados à tua biblioteca também entram.
+
+## Conquistas
+
+Ativa **Mostrar conquistas** nas **⚙ Definições** para ver desbloqueadas/total do
+jogo sorteado, e marca **caçador de conquistas** (ao lado de só-instalados) para
+receberes também uma conquista aleatória por obter. Usa o teu token; se não
+funcionar, cola uma **chave da API Steam** nas Definições. As estatísticas devem ser públicas.
 
 ## Onde são guardadas as definições
 

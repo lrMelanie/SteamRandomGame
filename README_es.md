@@ -32,12 +32,20 @@ ritmo, así que una biblioteca grande tarda; corre en segundo plano y puede rean
 
 En **Ajustes**, indica `...\Steam\userdata\<id>\config\grid` para usar tus carátulas.
 
-## Temas y superposición
+## Temas, superposición y atajos
 
-Abre **⚙ Ajustes** para cambiar de tema (Neon, Steam blue, Arcade, Dark gray,
-High contrast). El botón **Superposición** abre una ventanita siempre visible
-que colocas sobre Steam; sortear ahí abre el juego elegido en tu biblioteca de
-Steam.
+En **⚙ Ajustes** cambias el tema (Neon, Steam blue, Arcade, Dark gray, High
+contrast) y abres la **Superposición** - una ventanita siempre visible que
+colocas sobre Steam; sortear ahí abre el juego elegido en tu biblioteca Steam.
+La barra espaciadora sortea. Los juegos ajenos a Steam añadidos a tu biblioteca
+también entran en el sorteo.
+
+## Logros
+
+Activa **Mostrar logros** en **⚙ Ajustes** para ver desbloqueados/total del juego
+sorteado, y marca **cazador de logros** (junto a solo-instalados) para obtener
+además un logro aleatorio por conseguir. Usa tu token; si no funciona, pega una
+**clave de Steam API** en Ajustes. Las estadísticas de logros deben ser públicas.
 
 ## Dónde se guardan los ajustes
 

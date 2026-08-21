@@ -32,12 +32,20 @@ rythme, donc une grande bibliothèque prend du temps ; ça tourne en arrière-pl
 
 Dans **Paramètres**, indiquez `...\Steam\userdata\<id>\config\grid` pour utiliser vos jaquettes.
 
-## Thèmes et superposition
+## Thèmes, superposition et raccourcis
 
-Ouvrez **⚙ Paramètres** pour changer de thème (Neon, Steam blue, Arcade, Dark
-gray, High contrast). Le bouton **Superposition** ouvre une petite fenêtre
-toujours au premier plan que vous posez sur Steam ; y tirer ouvre le jeu choisi
-dans votre bibliothèque Steam.
+Dans **⚙ Paramètres** vous changez de thème (Neon, Steam blue, Arcade, Dark
+gray, High contrast) et ouvrez la **Superposition** - une petite fenêtre
+toujours au premier plan à poser sur Steam ; y tirer ouvre le jeu choisi dans
+votre bibliothèque Steam. La barre d'espace tire. Les jeux hors Steam ajoutés à
+votre bibliothèque sont aussi inclus.
+
+## Succès
+
+Activez **Afficher les succès** dans **⚙ Paramètres** pour voir débloqués/total
+du jeu tiré, et cochez **chasseur de succès** (à côté d'installés seulement) pour
+obtenir aussi un succès verrouillé à débloquer. Cela utilise votre token ; sinon,
+collez une **clé API Steam** dans Paramètres. Les stats de succès doivent être publiques.
 
 ## Où sont stockés les réglages
 

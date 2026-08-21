@@ -32,11 +32,20 @@ library takes a while; it runs in the background and can resume later.
 
 In **Settings**, point to `...\Steam\userdata\<id>\config\grid` to use your own covers.
 
-## Themes & overlay
+## Themes, overlay & shortcuts
 
 Open **⚙ Settings** to switch theme (Neon, Steam blue, Arcade, Dark gray, High
-contrast). The **Overlay** button opens a small always-on-top window you can
+contrast) and to open the **Overlay** - a small always-on-top window you can
 float over Steam; rolling there opens the picked game in your Steam library.
+Press **Space** to roll. Non-Steam games added to your Steam library are
+included in the draw too.
+
+## Achievements
+
+Turn on **Show achievements** in **⚙ Settings** to see unlocked/total for the
+rolled game, and tick **achievement hunter** (next to installed-only) to also get
+a random locked achievement to go earn. This uses your token; if it stays empty,
+paste a **Steam API key** in Settings. The game's achievement stats must be public.
 
 ## Where settings are stored
 

@@ -32,12 +32,20 @@ więc duża biblioteka trochę potrwa; leci w tle i można wznowić później.
 
 W **Ustawieniach** wskaż `...\Steam\userdata\<id>\config\grid`, by użyć swoich okładek.
 
-## Motywy i nakładka
+## Motywy, nakładka i skróty
 
-Kliknij **⚙ Ustawienia**, żeby zmienić motyw (Neon, Steam blue, Arcade, Dark
-gray, High contrast). Przycisk **Nakładka** otwiera małe okienko zawsze na
-wierzchu, które kładziesz na Steamie - losowanie tam otwiera wylosowaną grę w
-Twojej bibliotece Steam.
+W **⚙ Ustawieniach** zmienisz motyw (Neon, Steam blue, Arcade, Dark gray, High
+contrast) i otworzysz **Nakładkę** - małe okienko zawsze na wierzchu, które
+kładziesz na Steamie; losowanie tam otwiera wylosowaną grę w bibliotece Steam.
+Spacja losuje. Gry spoza Steama dodane do biblioteki też biorą udział w losowaniu.
+
+## Osiągnięcia
+
+Włącz **Pokazuj osiągnięcia** w **⚙ Ustawieniach**, żeby przy wylosowanej grze
+widzieć odblokowane/łącznie, a zaznacz **łowca osiągnięć** (obok „tylko
+zainstalowane"), by dostać też losowe niezdobyte osiągnięcie do zrobienia. Używa
+Twojego tokenu; jeśli nie działa, wklej **klucz Steam API** w Ustawieniach.
+Statystyki osiągnięć gry muszą być publiczne.
 
 ## Gdzie zapisują się ustawienia
 
